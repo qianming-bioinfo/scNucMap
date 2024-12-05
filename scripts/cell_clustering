@@ -1,0 +1,119 @@
+#!/bin/bash
+
+set -e
+
+# Default values for the variables
+motifIDAndName=""
+summitDistMat=""
+outputDir=""
+threCell=70
+threTF=90
+winsorLow=0.05
+winsorUp=0.95
+CVThre=0.5
+LSIDims=20
+dimLow=2
+dimUp=17
+clusteringMethod=1
+treeClusters=""
+
+# Function to display usage
+usage() {
+    echo "Usage: cell_clustering -n <motifIDAndName> -m <summitDistMat> -o <outputDir> [options]"
+    echo "-n:        A two-column table listing the correspondence between motif IDs and names"
+    echo "-m:        Path of summit distance matrix"
+    echo "-o:        Output directory"
+    echo "-c:        Threshold for cells with zero values (percentage) [default: 70]"
+    echo "-t:        Threshold for TFs with zero values (percentage) [default: 90]"
+    echo "-l:        Lower quantile for Winsorization [default: 0.05]"
+    echo "-u:        Upper quantile for Winsorization [default: 0.95]"
+    echo "-v:        Threshold for Coefficient of Variation (CV) [default: 0.5]"
+    echo "-d:        Option 'dims' in function Signac::RunSVD [default: 20]"
+    echo "-a:        Lower limit of option 'dims' in function Seurat::FindNeighbors [default: 2]"
+    echo "-b:        Upper limit of option 'dims' in function Seurat::FindNeighbors [default: 17]"
+    echo "-p:        Clustering method: 1 for graph-based, 2 for tree-based [default: 1]"
+    echo "-k:        Number of clusters for tree-based clustering (must be provided if -p is 2)"
+    echo "-h:        Show help message"
+    exit 1
+}
+
+# Parse command-line options
+while getopts ":n:m:o:c:t:l:u:v:d:a:b:p:k:h" opt; do
+    case ${opt} in
+        n )
+            motifIDAndName=$OPTARG
+            ;;
+        m )
+            summitDistMat=$OPTARG
+            ;;
+        o )
+            outputDir=$OPTARG
+            ;;
+        c )
+            threCell=$OPTARG
+            ;;
+        t )
+            threTF=$OPTARG
+            ;;
+        l )
+            winsorLow=$OPTARG
+            ;;
+        u )
+            winsorUp=$OPTARG
+            ;;
+        v )
+            CVThre=$OPTARG
+            ;;
+        d )
+            LSIDims=$OPTARG
+            ;;
+        a )
+            dimLow=$OPTARG
+            ;;
+        b )
+            dimUp=$OPTARG
+            ;;
+        p )
+            clusteringMethod=$OPTARG
+            ;;
+        k )
+            treeClusters=$OPTARG
+            ;;
+        h )
+            usage
+            ;;
+        \? )
+            usage
+            ;;
+    esac
+done
+
+# Check if all required options are provided
+if [ -z "$motifIDAndName" ] || [ -z "$summitDistMat" ] || [ -z "$outputDir" ]; then
+    usage
+fi
+
+# Check if treeClusters is provided when clusteringMethod is 2
+if [ "$clusteringMethod" -eq 2 ] && [ -z "$treeClusters" ]; then
+    echo "Error: -k must be provided when -p is 2"
+    usage
+fi
+
+mkdir -p "$outputDir"
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
+Rscript "$SCRIPT_DIR/../r/clustering_and_UMAP.R" \
+    -n ${motifIDAndName} \
+    -m ${summitDistMat} \
+    -o ${outputDir} \
+    -c ${threCell} \
+    -t ${threTF} \
+    -l ${winsorLow} \
+    -u ${winsorUp} \
+    -v ${CVThre} \
+    -d ${LSIDims} \
+    -a ${dimLow} \
+    -b ${dimUp} \
+    -p ${clusteringMethod} \
+    ${treeClusters:+-k ${treeClusters}}

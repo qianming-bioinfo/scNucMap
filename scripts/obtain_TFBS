@@ -1,0 +1,135 @@
+#!/bin/bash
+
+set -e
+
+# # Get the directory of the script
+# script_dir=$(dirname "$(realpath "$0")")
+
+# # Add the script directory to the PATH
+# export PATH="$script_dir:$PATH"
+
+# Help function
+usage() {
+    echo "Usage: obtain_TFBS -g <chrFaDir> -m <pfmDir> -o <outDir> [--moods-args <args>]"
+    echo "  -g  Directory containing individual chromosome fasta files"
+    echo "  -m  Directory containing PFM files"
+    echo "  -r  Sorted open chromatin region in BED format"
+    echo "  -o  Output directory"
+    echo "  --moods-args  Additional arguments for moods-dna.py (optional), enclosed in quotes. The p-value is set to 5e-5 in nuclVale as default."
+    echo "  -h, --help  Show this help message and exit"
+    echo ""
+    echo "Example:"
+    echo "  sh PATH/TO/motifScan.sh \\"
+    echo "     -g DIRECTORY/OF/INDIVIDUAL/CHROM/FASTA/FILES \\"
+    echo "     -m DIRECTORY/OF/PFM/FILES \\"
+    echo "     -r PATH/TO/OPEN/CHROMATIN/REGION/BED/FILE \\"
+    echo "     --moods-args \"-p 0.00005\" \\"
+    echo "     -o YOUR/OUTPUT/DIRECTORY"
+    exit 1
+}
+
+# Default p-value
+defaultPValue=0.00005
+pValueProvided=false
+
+# Parse command line arguments
+while getopts ":g:m:r:o:-:h" opt; do
+  case $opt in
+    g) chrFaDir="$OPTARG"
+    ;;
+    m) pfmDir="$OPTARG"
+    ;;
+    o) outDir="$OPTARG"
+    ;;
+    r) open_region="$OPTARG"
+    ;;
+    -)
+      case "${OPTARG}" in
+        moods-args)
+          val="${!OPTIND}"; OPTIND=$((OPTIND + 1))
+          moodsArgs="$val"
+          if [[ $moodsArgs == *"-p"* ]]; then
+            pValueProvided=true
+          fi
+          ;;
+        help)
+          usage
+          ;;
+        *)
+          echo "Invalid option --${OPTARG}" >&2
+          usage
+          ;;
+      esac
+    ;;
+    h) usage
+    ;;
+    \?) echo "Invalid option -$OPTARG" >&2
+        usage
+    ;;
+    :) echo "Option -$OPTARG requires an argument." >&2
+       usage
+    ;;
+  esac
+done
+
+# Check if all required arguments are provided
+if [ -z "$chrFaDir" ] || [ -z "$pfmDir" ] || [ -z "$outDir" ]; then
+    usage
+fi
+
+if [ ! -d "$outDir" ]; then
+  mkdir -p $outDir
+fi
+
+start=$SECONDS
+
+# for both positive and negative strand
+for f in $chrFaDir/*.fa
+do
+  echo "Processing $f file..."
+  
+  pre=$(basename $f)
+  pre=${pre%.*}
+
+  if [ "$pValueProvided" = true ]; then
+    moods-dna.py -m $pfmDir/*.pfm \
+                -s ${f} \
+                -o $outDir/${pre}'_MOODS.csv' \
+                ${moodsArgs}
+  else
+    moods-dna.py -m $pfmDir/*.pfm \
+                -s ${f} \
+                -p ${defaultPValue} \
+                -o $outDir/${pre}'_MOODS.csv' \
+                ${moodsArgs}
+  fi
+done
+
+cat $outDir/*_MOODS.csv > $outDir/MOODS_genomeScan.csv
+
+end=$SECONDS
+
+echo "Motif matching completed in $((end-start)) seconds."
+
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
+# TFBS filtering
+echo "Dealing with MOODS output..."
+python "$SCRIPT_DIR/../python/sepMotifCenterRes.py" \
+    -i $outDir/MOODS_genomeScan.csv \
+    -o $outDir/motifCenter_txt
+
+echo "Adpating results format..."
+python "$SCRIPT_DIR/../python/center2bed_flank.py" \
+    -i $outDir/motifCenter_txt \
+    -o $outDir/motifCenter_bed \
+    -d 0
+
+echo "TFBS filtering..."
+python "$SCRIPT_DIR/../python/motifCenterOvlpPeaks.py" \
+    -c $outDir/motifCenter_bed \
+    -r $open_region \
+    -o $outDir/motif_openRegion_overlap_center
+
+echo "done!"

@@ -1,0 +1,107 @@
+#!/bin/bash
+
+set -e
+
+# Default values for optional options
+num_threads=1
+center_upstream=400
+center_downstream=400
+window_size=1
+motif_shift_size=200
+coverage_threshold=0.05
+region_hit_threshold=1
+
+# Function to display help message
+show_help() {
+    echo "Usage: cal_summitDist_mat -f <meta_file> -c <center_file> -o <out_prefix> [-u <center_upstream>] [-d <center_downstream>] [-w <window_size>] [-m <motif_shift_size>] [-t <coverage_threshold>] [-n <region_hit_threshold>] [-p <parallel_mode>]"
+    echo "-f:        A meta file with the first column containing single-cell BED file paths,"
+    echo "           and the second column containing labels"
+    echo "-c:        Directory of TFBS center BED files"
+    echo "-o:        out_prefix"
+    echo "-u:        center_upstream, default: 400"
+    echo "-d:        center_downstream, default: 400"
+    echo "-w:        window_size, default: 1"
+    echo "-m:        motif_shift_size, default: 200"
+    echo "-t:        coverage_threshold, default: 0.05"
+    echo "-n:        region_hit_threshold, default: 1"
+    echo "-p:        Number of threads. Use 1 for single-threaded, or a value >=1 for multi-threaded. Default: 1"
+    echo "-h:        Show help message"
+}
+
+# Parse command line arguments
+while getopts "hf:c:o:u:d:w:m:t:n:p:-:" opt; do
+  case $opt in
+    h) show_help; exit 0 ;;
+    f) meta_file="$OPTARG" ;;
+    c) center_file="$OPTARG" ;;
+    o) out_prefix="$OPTARG" ;;
+    u) center_upstream="$OPTARG" ;;
+    d) center_downstream="$OPTARG" ;;
+    w) window_size="$OPTARG" ;;
+    m) motif_shift_size="$OPTARG" ;;
+    t) coverage_threshold="$OPTARG" ;;
+    n) region_hit_threshold="$OPTARG" ;;
+    p) num_threads="$OPTARG" ;;
+    -)
+      case "${OPTARG}" in
+        help) show_help; exit 0 ;;
+        *) echo "Invalid option --${OPTARG}" >&2; exit 1 ;;
+      esac ;;
+    \?) echo "Invalid option -$OPTARG" >&2; exit 1 ;;
+  esac
+done
+
+# Check if required options are provided
+if [ -z "$meta_file" ] || [ -z "$center_file" ] || [ -z "$out_prefix" ]; then
+    echo "Error: Missing required options."
+    show_help
+    exit 1
+fi
+
+
+output_dir=$(dirname "$out_prefix")
+temp_dir="$output_dir/temp_nuclVale_parallel"
+
+# Check if temp_dir exists
+if [ -d "$temp_dir" ]; then
+  # If it exists, remove it
+  rm -rf "$temp_dir"
+fi
+
+# Create the directory
+mkdir -p "$temp_dir"
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
+if [ "$num_threads" -eq 1 ]; then
+  echo "calculating summit distance matrix in single-threaded mode..."
+  "$SCRIPT_DIR/../bin/calSDMat" -f $meta_file -c $center_file -o $out_prefix -u $center_upstream -d $center_downstream -w $window_size -m $motif_shift_size -t $coverage_threshold -n $region_hit_threshold
+
+else
+  echo "calculating summit distance matrix with $num_threads threads..."
+  split -n l/$num_threads $meta_file $temp_dir/meta_
+
+  for part in $temp_dir/meta_*
+  do
+    "$SCRIPT_DIR/../bin/calSDMat" -f $part -c $center_file -o $temp_dir/$(basename $part) -u $center_upstream -d $center_downstream -w $window_size -m $motif_shift_size -t $coverage_threshold -n $region_hit_threshold > $temp_dir/$(basename $part).log 2>&1 &
+    sleep 1
+  done
+
+  wait
+
+  echo "merging results..."
+
+  output_file="$out_prefix.summitDist.txt"
+  first_file=$(ls $temp_dir/meta_*.summitDist.txt | head -n 1)
+
+  head -n 1 $first_file > $output_file
+
+  for file in $temp_dir/meta_*.summitDist.txt
+  do
+    tail -n +2 $file >> $output_file
+  done
+
+  rm -r $temp_dir
+fi
+
+echo "done!"

@@ -1,0 +1,83 @@
+#!/bin/bash
+
+set -e
+
+# Default values for the variables
+metaFile=""
+TFBSCenter=""
+outPrefix=""
+centerUpstream=100
+centerDownstream=100
+flankUpstream=200
+flankDownstream=200
+windowSize=1
+
+# Function to display usage
+usage() {
+    echo "Usage: ./countNuclFrag -f <metaFile> -c <TFBSCenter> -o <outPrefix> [options]"
+    echo "-f:        A meta file with the first column containing single-cell BED file paths,"
+    echo "           and the second column containing labels"
+    echo "-c:        TFBS_center"
+    echo "-o:        out_prefix"
+    echo "-u:        Center upstream, default: 100"
+    echo "-d:        Center downstream, default: 100"
+    echo "-l:        Flank upstream, default: 200"
+    echo "-r:        Flank downstream, default: 200"
+    echo "-w:        Window size, default: 1"
+    echo "-h:        Show help message"
+    exit 1
+}
+
+# Parse command-line options
+while getopts ":f:c:o:u:d:l:r:w:h" opt; do
+    case ${opt} in
+        f )
+            metaFile=$OPTARG
+            ;;
+        c )
+            TFBSCenter=$OPTARG
+            ;;
+        o )
+            outPrefix=$OPTARG
+            ;;
+        u )
+            centerUpstream=$OPTARG
+            ;;
+        d )
+            centerDownstream=$OPTARG
+            ;;
+        l )
+            flankUpstream=$OPTARG
+            ;;
+        r )
+            flankDownstream=$OPTARG
+            ;;
+        w )
+            windowSize=$OPTARG
+            ;;
+        h )
+            usage
+            ;;
+        \? )
+            usage
+            ;;
+    esac
+done
+
+# Check if all required options are provided
+if [ -z "$metaFile" ] || [ -z "$TFBSCenter" ] || [ -z "$outPrefix" ]; then
+    usage
+fi
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
+"$SCRIPT_DIR/../bin/countNuclFrag" \
+    -f ${metaFile} \
+    -c ${TFBSCenter} \
+    -o ${outPrefix} \
+    -u ${centerUpstream} \
+    -d ${centerDownstream} \
+    -l ${flankUpstream} \
+    -r ${flankDownstream} \
+    -w ${windowSize} \
+    -t 2

@@ -1,0 +1,63 @@
+#!/bin/bash
+
+set -e
+
+# Default values for the variables
+countDir=""
+filterResOutDir=""
+sampleNames=""
+scoreThre=0.1
+pThre=0.01
+
+# Function to display usage
+usage() {
+    echo "Usage: find_mark_TF_bulk -d <countDir> -o <filterResOutDir> -s <sampleNames> [options]"
+    echo "-d:        Directory containing count tables"
+    echo "-o:        Output directory for filtered results"
+    echo "-s:        A comma-separated list of sample names corresponding to the prefixes of the count tables"
+    echo "-t:        Nucleosome-free Score threshold [default: 0.1]"
+    echo "-p:        Independence test p-value threshold [default: 0.01]"
+    echo "-h:        Show help message"
+    exit 1
+}
+
+# Parse command-line options
+while getopts ":d:o:s:t:p:h" opt; do
+    case ${opt} in
+        d )
+            countDir=$OPTARG
+            ;;
+        o )
+            filterResOutDir=$OPTARG
+            ;;
+        s )
+            sampleNames=$OPTARG
+            ;;
+        t )
+            scoreThre=$OPTARG
+            ;;
+        p )
+            pThre=$OPTARG
+            ;;
+        h )
+            usage
+            ;;
+        \? )
+            usage
+            ;;
+    esac
+done
+
+# Check if all required options are provided
+if [ -z "$countDir" ] || [ -z "$filterResOutDir" ] || [ -z "$sampleNames" ]; then
+    usage
+fi
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
+Rscript "$SCRIPT_DIR/../r/find_mark_TF_bulk.R" \
+    -d ${countDir} \
+    -o ${filterResOutDir} \
+    -s ${sampleNames} \
+    -t ${scoreThre} \
+    -p ${pThre}

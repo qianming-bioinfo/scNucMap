@@ -1,0 +1,3 @@
+pandas==2.0.3
+pybedtools==0.10.0
+pyjaspar==2.1.1

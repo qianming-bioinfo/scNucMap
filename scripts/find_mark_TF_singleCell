@@ -1,0 +1,88 @@
+#!/bin/bash
+
+set -e
+
+# Default values for the variables
+centerNuclCountSum=""
+flankNuclCountSum=""
+centerNuclCountSum_bg=""
+flankNuclCountSum_bg=""
+sampleCluster=""
+motifIDAndName=""
+outDir=""
+scoreThre=0.1
+pThre=0.01
+
+# Function to display usage
+usage() {
+    echo "Usage: $0 -c <centerNuclCountSum> -f <flankNuclCountSum> -b <centerNuclCountSum_bg> -l <flankNuclCountSum_bg> -s <sampleCluster> -m <motifIDAndName> -o <outDir> [options]"
+    echo "-c:        Path to the summed fragment count table around the center regions of the target TFBS"
+    echo "-f:        Path to the summed fragment count table around the flank regions of the target TFBS"
+    echo "-b:        Path to the summed fragment count table around the center regions of the background regions"
+    echo "-l:        Path to the summed fragment count table around the flank regions of the background regions"
+    echo "-s:        Path to sample_cluster file which records the cluster information of each sample"
+    echo "-m:        A two-column table listing the correspondence between motif IDs and names"
+    echo "-o:        Output directory"
+    echo "-t:        Threshold for score (default = 0.1)"
+    echo "-p:        Threshold for chi-square p-value (default = 0.01)"
+    echo "-h:        Show help message"
+    exit 1
+}
+
+# Parse command-line options
+while getopts ":c:f:b:l:s:m:o:t:p:h" opt; do
+    case ${opt} in
+        c )
+            centerNuclCountSum=$OPTARG
+            ;;
+        f )
+            flankNuclCountSum=$OPTARG
+            ;;
+        b )
+            centerNuclCountSum_bg=$OPTARG
+            ;;
+        l )
+            flankNuclCountSum_bg=$OPTARG
+            ;;
+        s )
+            sampleCluster=$OPTARG
+            ;;
+        m )
+            motifIDAndName=$OPTARG
+            ;;
+        o )
+            outDir=$OPTARG
+            ;;
+        t )
+            scoreThre=$OPTARG
+            ;;
+        p )
+            pThre=$OPTARG
+            ;;
+        h )
+            usage
+            ;;
+        \? )
+            usage
+            ;;
+    esac
+done
+
+# Check if all required options are provided
+if [ -z "$centerNuclCountSum" ] || [ -z "$flankNuclCountSum" ] || [ -z "$centerNuclCountSum_bg" ] || [ -z "$flankNuclCountSum_bg" ] || [ -z "$sampleCluster" ] || [ -z "$motifIDAndName" ] || [ -z "$outDir" ]; then
+    usage
+fi
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
+# Run the R script with the provided options
+Rscript "$SCRIPT_DIR/../r/find_mark_TF_singleCell.R" \
+    -c ${centerNuclCountSum} \
+    -f ${flankNuclCountSum} \
+    -b ${centerNuclCountSum_bg} \
+    -l ${flankNuclCountSum_bg} \
+    -s ${sampleCluster} \
+    -m ${motifIDAndName} \
+    -o ${outDir} \
+    -t ${scoreThre} \
+    -p ${pThre}
