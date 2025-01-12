@@ -1,4 +1,4 @@
-#   scNucMap: mapping the nucleosome landscapes at single-cell resolution
+# scNucMap: Mapping the landscape between nucleosomes at single-cell resolution
 
 **scNucMap** is a tool specifically designed to leverage the unique characteristics of scMNase-seq data to map the valley-like landscape of candidate nucleosome-free regions (NFRs). scNucMap demonstrates superior performance and robustness in clustering cells across diverse sample compositions and varying data complexities. It effectively identifies key transcription factors (TFs) associated with nucleosome depletion at cis-regulatory elements (CREs) at both the single-cell and cell-cluster levels, thereby facilitating cell type annotation and regulatory network inference.
 
@@ -90,7 +90,7 @@ obtain_TFBS -g data/test_chr_fasta \
 📤 **Output:**  
 - A directory containing the potential TFBS centers for each motif.
 
-### 2. Calculate summit distance matrix:
+### 2. Calculate summit distance matrix (optional: skip to step 3 and use pre-generated results):
 
 💡 **Tips:** 
 - For convenience in testing, we have generated `data/demo.summitDist.txt`, which corresponds to the summit distance matrix generated from test data, ready for direct use in the next step. 
@@ -106,7 +106,7 @@ cal_summitDist_mat -f data/meta_example.txt \
                    -o test_out/cal_summitDist_mat_res
 ```
 - `-f`: A meta file with the first column containing single-cell BED file paths, and the second column containing labels.
-- `-c`: Directory of TFBS center BED files.
+- `-c`: Directory of TFBS centers (first column: chromosome, second column: center position, third column: strand, optional).
 - `-o`: Output prefix.
 - `-u`: Center upstream, default: 400.
 - `-d`: Center downstream, default: 400.
@@ -212,8 +212,8 @@ countNuclFrag -f data/meta_example.txt \
               -c path/to/REGION/CENTERS \
               -o path/to/COUNT_TABLE_OUTPUT
 ```
-- `-f`: A meta file with the first column containing single-cell BED file paths, and the second column containing labels.
-- `-c`: TFBS center. Here can be `data/mark_TF_singleCell_demo/motif_union_DHS_ovlpCenter`, `data/mark_TF_bulk_demo/motif_+0-_-0+_DHS_ovlpCenter` or `data/bg_region`, depending on the target of the calculation.
+- `-f`: A meta file with the first column containing scMNase-seq BED file paths, and the second column containing labels.
+- `-c`: Directory of TFBS centers (first column: chromosome, second column: center position, third column: strand, optional). Here can be `data/mark_TF_singleCell_demo/motif_union_DHS_ovlpCenter`, `data/mark_TF_bulk_demo/motif_+0-_-0+_DHS_ovlpCenter` or `data/bg_region`, depending on the target of the calculation.
 - `-o`: Output prefix.
 - `-u`: Center upstream (default: 100).
 - `-d`: Center downstream (default: 100).
