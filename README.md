@@ -63,10 +63,8 @@ For testing convenience, intermediate results are provided in the `data` directo
 cd path/to/scNucMap
 ```
 
-### 1. Obtain potential TFBS:
+### 1. Obtain potential TFBSs (optional: demo TFBSs are provided below):
 
-💡 **Tips:** 
-- A meta file can be generated using `utilities/make_meta_file.sh`.
 - We have generated `data/mark_TF_singleCell_demo/motif_union_DHS_ovlpCenter` by replacing `data/test_chr_fasta` with a directory containing all mm9 chromosome FASTA files for a quick review.
 
 ```bash
@@ -90,20 +88,26 @@ obtain_TFBS -g data/test_chr_fasta \
 📤 **Output:**  
 - A directory containing the potential TFBS centers for each motif.
 
-### 2. Calculate summit distance matrix (optional: skip to step 3 and use pre-generated results):
+### 2. Calculate summit distance and nucleosomal fragment count matrix (optional: skip to Step 3 if using pre-generated results):
 
 💡 **Tips:** 
 - For convenience in testing, we have generated `data/demo.summitDist.txt`, which corresponds to the summit distance matrix generated from test data, ready for direct use in the next step. 
 - You can use `utilities/motif_ID_name_matching.py` to query the corresponding motif name based on the motif ID.
+- A meta file can be generated using `utilities/make_meta_file.sh`.
+
+```bash
+cd utilities
+sh make_meta_file.sh -h
+```
 
 ```bash
 tar -xzvf data/mark_TF_singleCell_demo.tar.gz -C data
 ```
 
 ```bash
-cal_summitDist_mat -f data/meta_example.txt \
-                   -c data/mark_TF_singleCell_demo/motif_union_DHS_ovlpCenter \
-                   -o test_out/cal_summitDist_mat_res
+cal_SD_mat_and_nucl_count -f data/meta_example.txt \
+                          -c data/mark_TF_singleCell_demo/motif_union_DHS_ovlpCenter \
+                          -o test_out/example_prefix
 ```
 - `-f`: A meta file with the first column containing single-cell BED file paths, and the second column containing labels.
 - `-c`: Directory of TFBS centers (first column: chromosome, second column: center position, third column: strand, optional).
@@ -114,12 +118,16 @@ cal_summitDist_mat -f data/meta_example.txt \
 - `-m`: Motif shift size, default: 200.
 - `-t`: Coverage threshold, default: 0.05.
 - `-n`: Region hit threshold, default: 1.
+- `-r`: Center range (upstream + downstream) in fragment count (default: 100).
+- `-k`: Flank range (upstream + downstream) in fragment count (default: 200).
 - `-p`: Number of threads. Use 1 for single-threaded, or a value >=1 for multi-threaded. Default: 1.
+- `-M`: Mode (`standard` or `lite`, default: `standard`). `standard` runs faster but uses more memory; `lite` is slower but more memory-efficient.
 - `-h`: Show help message.
 
 
 📤 **Output:** 
 - A summit distance matrix, where rows represent cells and columns represent motifs.
+- Two nucleosomal fragment count matrices end with `centerNuclCountSum.txt` and `flankNuclCountSum.txt`
 
 ### 3. Clustering single cell samples:
 
@@ -133,7 +141,7 @@ cell_clustering -n data/motifID_and_name.txt \
 - `-o`: Output directory.
 - `-c`: Threshold for cells with zero values (percentage) [default: 70].
 - `-t`: Threshold for TFs with zero values (percentage) [default: 90].
-- `-l`: Lower quantile for Winsorization [default: 0.05].
+- `-l`: Lower quantile for Winsorization [default: 0].
 - `-u`: Upper quantile for Winsorization [default: 0.95].
 - `-v`: Threshold for Coefficient of Variation (CV) [default: 0.5].
 - `-d`: Option 'dims' in function Signac::RunSVD [default: 20].
@@ -150,7 +158,34 @@ cell_clustering -n data/motifID_and_name.txt \
 
 ### 4. Identify remarkable TFs:
 
-Remarkable TFs can be identified at two levels: sample-level or cluster-level.
+First, calculate the background nucleosomal fragment count matrix:
+
+```bash
+tar -xzvf data/bg_region.tar.gz -C data
+```
+
+💡 **Tip:** 
+- A meta file can be generated using `utilities/make_meta_file.sh`.
+
+```bash
+count_bg_nucl_frag -f data/meta_example.txt \
+                   -c data/bg_region \
+                   -o test_out/example_prefix_bg
+```
+- `-f`: A meta file with the first column containing scMNase-seq BED file paths, and the second column containing labels.
+- `-c`: Directory of background TFBS centers (first column: chromosome, second column: center position, third column: strand, optional). Here can be `data/bg_region`.
+- `-o`: Output prefix.
+- `-u`: Center upstream (default: 100).
+- `-d`: Center downstream (default: 100).
+- `-l`: Flank upstream (default: 200).
+- `-r`: Flank downstream (default: 200).
+- `-w`: Window size (default: 1).
+- `-h`: Show help message.
+
+📤 **Output:** 
+- Two nucleosomal fragment count matrices end with `centerNuclCountSum.txt` and `flankNuclCountSum.txt`
+
+#### Remarkable TFs can be identified at two levels: sample-level or cluster-level.
 
 (1) From single cell samples to cluster level:
 
@@ -181,13 +216,11 @@ find_mark_TF_singleCell -c data/mark_TF_singleCell_demo/demo_TFBS.centerNuclCoun
 📤 **Output:**  
 - Output: Tables indicating whether each TF exhibits specific activity in each cluster.
 
-(2) At pseudo-bulk sample level:
+(2) At bulk/pooled sample level:
 
 ```bash
-tar -xzvf data/bg_region.tar.gz -C data
 tar -xzvf data/mark_TF_bulk_demo.tar.gz -C data
 ```
-
 
 ```bash
 find_mark_TF_bulk -d data/mark_TF_bulk_demo \
@@ -197,30 +230,13 @@ find_mark_TF_bulk -d data/mark_TF_bulk_demo \
 - `-d`: Directory containing count tables.
 - `-o`: Output directory for filtered results.
 - `-s`: A comma-separated list of sample names corresponding to the prefixes of the count tables.
-- `-t`: Nucleosome-free Score threshold [default: 0.1].
-- `-p`: Independence test p-value threshold [default: 0.01].
+- `-t`: Nucleosome-free Score threshold (default = 0.1).
+- `-p`: Independence test p-value threshold (default = 0.01).
 - `-h`: Show help message.
 
 📤 **Output:**  
-- Output: Tables containing the nucleosome-free scores and independence test p-values for each sample towards each TF.
+- Tables containing the nucleosome-free scores and independence test p-values for each sample towards each TF.
 
-💡 **Tip:** 
-To calculate the nucleosome-free score and perform the independence test, both require the same data preparation step:
-
-```bash
-countNuclFrag -f data/meta_example.txt \
-              -c path/to/REGION/CENTERS \
-              -o path/to/COUNT_TABLE_OUTPUT
-```
-- `-f`: A meta file with the first column containing scMNase-seq BED file paths, and the second column containing labels.
-- `-c`: Directory of TFBS centers (first column: chromosome, second column: center position, third column: strand, optional). Here can be `data/mark_TF_singleCell_demo/motif_union_DHS_ovlpCenter`, `data/mark_TF_bulk_demo/motif_+0-_-0+_DHS_ovlpCenter` or `data/bg_region`, depending on the target of the calculation.
-- `-o`: Output prefix.
-- `-u`: Center upstream (default: 100).
-- `-d`: Center downstream (default: 100).
-- `-l`: Flank upstream (default: 200).
-- `-r`: Flank downstream (default: 200).
-- `-w`: Window size (default: 1).
-- `-h`: Show help message.
 
 
 ## Contact

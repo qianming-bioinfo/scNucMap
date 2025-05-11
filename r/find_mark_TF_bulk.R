@@ -3,6 +3,8 @@ library(dplyr)
 library(optparse)
 })
 
+options(warn = -1)
+
 # Define command line options
 option_list <- list(
   make_option(c("-d", "--data_folder"), type = "character", help = "Data folder path (required)"),
@@ -96,20 +98,20 @@ contingency_tests <- function(prefix) {
       
       # chisq, Yates or Fisher's
       if (any(contingency_table == 0)) {
-        fisher_test <- fisher.test(contingency_table)
+        fisher_test <- suppressWarnings(fisher.test(contingency_table))
         p_values[i, j] <- fisher_test$p.value
       }
       else{
-        chi_test <- chisq.test(contingency_table, correct = F)
+        chi_test <- suppressWarnings(chisq.test(contingency_table, correct = F))
         if (all(chi_test$expected >= 5)) {
           p_values[i, j] <- chi_test$p.value
         } else {
           if (any(chi_test$expected < 5 & chi_test$expected > 1)) {
-              yates_test <- chisq.test(contingency_table, correct = TRUE)
+              yates_test <- suppressWarnings(chisq.test(contingency_table, correct = TRUE))
               p_values[i, j] <- yates_test$p.value
           } 
           else { # fisher
-          fisher_test <- fisher.test(contingency_table)
+          fisher_test <- suppressWarnings(fisher.test(contingency_table))
           p_values[i, j] <- fisher_test$p.value
           }
         }

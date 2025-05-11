@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -std=c++17 -O2  -pthread
+CXXFLAGS = -std=c++17 -O2 -pthread
 
 # Directories
 SRC_DIR = src
@@ -10,7 +10,19 @@ R_DIR = r
 SCRIPTS_DIR = scripts
 
 # Source files
-MAIN_SRCS = $(wildcard $(SRC_DIR)/calSDMat.cpp $(SRC_DIR)/countNuclFrag.cpp)
+# MAIN_SRCS = $(wildcard $(SRC_DIR)/cal_SD_and_frag_count_lite.cpp \
+# 					   $(SRC_DIR)/cal_SD_and_frag_count_standard.cpp \
+# 					   $(SRC_DIR)/calSDMat_lite.cpp \
+# 					   $(SRC_DIR)/calSDMat_standard.cpp \
+# 					   $(SRC_DIR)/countNuclFrag_lite.cpp \
+# 					   $(SRC_DIR)/countNuclFrag_standard.cpp)
+
+MAIN_SRCS = $(wildcard $(SRC_DIR)/cal_SD_and_frag_count_lite.cpp \
+					   $(SRC_DIR)/cal_SD_and_frag_count_standard.cpp \
+					   $(SRC_DIR)/calSDMat_lite.cpp \
+					   $(SRC_DIR)/calSDMat_standard.cpp \
+					   $(SRC_DIR)/countNuclFrag_standard.cpp)
+
 SUPPORT_SRCS = $(wildcard $(SRC_DIR)/myoperation.cpp)
 
 # Object files
@@ -18,46 +30,68 @@ MAIN_OBJS = $(MAIN_SRCS:$(SRC_DIR)/%.cpp=$(BIN_DIR)/%.o)
 SUPPORT_OBJS = $(SUPPORT_SRCS:$(SRC_DIR)/%.cpp=$(BIN_DIR)/%.o)
 
 # Executables
-EXECUTABLES = $(BIN_DIR)/calSDMat $(BIN_DIR)/countNuclFrag
+EXECUTABLES = \
+	$(BIN_DIR)/cal_SD_and_frag_count_lite \
+	$(BIN_DIR)/cal_SD_and_frag_count_standard \
+	$(BIN_DIR)/calSDMat_lite \
+	$(BIN_DIR)/calSDMat_standard \
+	$(BIN_DIR)/countNuclFrag_standard \
+	# $(BIN_DIR)/countNuclFrag_lite
+
 
 # Default target
 all: $(EXECUTABLES) check-python-deps check-r-deps install-scripts-permission part-clean
 
-# Rule for calSDMat executable
-$(BIN_DIR)/calSDMat: $(BIN_DIR)/calSDMat.o $(BIN_DIR)/myoperation.o
+# Rules for executables
+$(BIN_DIR)/cal_SD_and_frag_count_lite: $(BIN_DIR)/cal_SD_and_frag_count_lite.o $(BIN_DIR)/myoperation.o
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-# Rule for countNuclFrag executable
-$(BIN_DIR)/countNuclFrag: $(BIN_DIR)/countNuclFrag.o $(BIN_DIR)/myoperation.o
+$(BIN_DIR)/cal_SD_and_frag_count_standard: $(BIN_DIR)/cal_SD_and_frag_count_standard.o $(BIN_DIR)/myoperation.o
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-# Compile main source files
+$(BIN_DIR)/calSDMat_lite: $(BIN_DIR)/calSDMat_lite.o $(BIN_DIR)/myoperation.o
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+$(BIN_DIR)/calSDMat_standard: $(BIN_DIR)/calSDMat_standard.o $(BIN_DIR)/myoperation.o
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+# $(BIN_DIR)/countNuclFrag_lite: $(BIN_DIR)/countNuclFrag_lite.o $(BIN_DIR)/myoperation.o
+# 	$(CXX) $(CXXFLAGS) $^ -o $@
+
+$(BIN_DIR)/countNuclFrag_standard: $(BIN_DIR)/countNuclFrag_standard.o $(BIN_DIR)/myoperation.o
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+# Compile source files
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -MMD -MF $(BIN_DIR)/$*.d -c $< -o $@
 
-# Check and install Python dependencies
+# Python dependencies
 check-python-deps:
 	@echo "Checking and installing Python dependencies..."
 	pip3 install -r $(PYTHON_DIR)/requirements.txt
 
-# Check and install R dependencies
+# R dependencies
 check-r-deps:
 	@echo "Checking and installing R dependencies..."
 	Rscript $(R_DIR)/check_packages.R
 
-# Install executable permissions for shell scripts
+# Set shell script executable permissions
 install-scripts-permission:
 	@chmod +x $(SCRIPTS_DIR)/*
 
-# Clean
+# Clean only object and dependency files
 part-clean:
 	@rm -f $(BIN_DIR)/*.o $(BIN_DIR)/*.d
 
+# Full clean
 clean:
 	rm -f $(BIN_DIR)/*.o $(BIN_DIR)/*.d $(EXECUTABLES)
 
-# Include dependency files if they exist
+# Install all (optional alias)
+install: all
+
+# Include dependency files
 -include $(BIN_DIR)/*.d
 
-.PHONY: all check-python-deps check-r-deps clean install-scripts-permission
+.PHONY: all clean part-clean check-python-deps check-r-deps install-scripts-permission install

@@ -3,6 +3,8 @@
 # Load required packages
 library(optparse)
 
+options(warn = -1)
+
 # Parse command-line arguments
 option_list <- list(
   make_option(c("-c", "--center_count"), type = "character", help = "Path to center count file", metavar = "character"),
@@ -13,7 +15,7 @@ option_list <- list(
   make_option(c("-m", "--motif_name"), type = "character", help = "Path to motif name mapping file", metavar = "character"),
   make_option(c("-o", "--output_dir"), type = "character", help = "Output directory for results", metavar = "character"),
   make_option(c("-t", "--score_thre"), type = "numeric", default = 0.1, help = "Threshold for score (default = 0.1)", metavar = "numeric"),
-  make_option(c("-p", "--chisq_p_thre"), type = "numeric", default = 0.01, help = "Threshold for chi-square p-value (default = 0.01)", metavar = "numeric")
+  make_option(c("-p", "--chisq_p_thre"), type = "numeric", default = 0.01, help = "Threshold for chi-square p-value (default = 0.05)", metavar = "numeric")
 )
 
 # Set up option parser
