@@ -14,6 +14,7 @@ CVThre=0.5
 LSIDims=20
 dimLow=2
 dimUp=17
+resolution=0.6
 clusteringMethod=1
 treeClusters=""
 
@@ -31,6 +32,7 @@ usage() {
     echo "-d:        Option 'dims' in function Signac::RunSVD [default: 20]"
     echo "-a:        Lower limit of option 'dims' in function Seurat::FindNeighbors [default: 2]"
     echo "-b:        Upper limit of option 'dims' in function Seurat::FindNeighbors [default: 17]"
+    echo "-r:        Value of the Resolution option in the Seurat::FindClusters function [default: 0.6]"
     echo "-p:        Clustering method: 1 for graph-based, 2 for tree-based [default: 1]"
     echo "-k:        Number of clusters for tree-based clustering (must be provided if -p is 2)"
     echo "-h:        Show help message"
@@ -38,7 +40,7 @@ usage() {
 }
 
 # Parse command-line options
-while getopts ":n:m:o:c:t:l:u:v:d:a:b:p:k:h" opt; do
+while getopts ":n:m:o:c:t:l:u:v:d:a:b:r:p:k:h" opt; do
     case ${opt} in
         n )
             motifIDAndName=$OPTARG
@@ -72,6 +74,9 @@ while getopts ":n:m:o:c:t:l:u:v:d:a:b:p:k:h" opt; do
             ;;
         b )
             dimUp=$OPTARG
+            ;;
+        r )
+            resolution=$OPTARG
             ;;
         p )
             clusteringMethod=$OPTARG
@@ -115,5 +120,6 @@ Rscript "$SCRIPT_DIR/../r/clustering_and_UMAP.R" \
     -d ${LSIDims} \
     -a ${dimLow} \
     -b ${dimUp} \
+    -r ${resolution} \
     -p ${clusteringMethod} \
     ${treeClusters:+-k ${treeClusters}}

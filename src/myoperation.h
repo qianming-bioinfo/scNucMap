@@ -30,6 +30,7 @@ using namespace std;
 vector<string> getFiles(const string& folder, const string& suffix, string fileListName = "my");
 bool isFileEmpty(ifstream& file);
 vector<string> getPathFromMetafile(const string& filename);
+vector<vector<string>> splitVector(const vector<string>& vec, int numParts);
 
 vector<string> parseString(string& instr);
 void readAlignTagFile(string infile, map<string, vector<int>> &tagpos);

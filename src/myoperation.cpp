@@ -61,6 +61,26 @@ vector<string> getPathFromMetafile(const string& filename) {
     return pathCol;
 }
 
+
+
+vector<vector<string>> splitVector(const vector<string>& vec, int numParts){
+    
+    vector<vector<string>> result;
+    int totalSize = vec.size();
+    int baseSize = totalSize / numParts;
+    int remainder = totalSize % numParts;
+
+    auto it = vec.begin();
+    for (int i = 0; i < numParts; ++i) {
+        int currentSize = baseSize + (i < remainder ? 1 : 0);
+        vector<string> part(it, it + currentSize);
+        result.push_back(part);
+        it += currentSize;
+    }
+
+    return result;
+}
+
 // ####### system #######
 
 

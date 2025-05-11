@@ -11,7 +11,7 @@ sampleCluster=""
 motifIDAndName=""
 outDir=""
 scoreThre=0.1
-pThre=0.01
+pThre=0.05
 
 # Function to display usage
 usage() {

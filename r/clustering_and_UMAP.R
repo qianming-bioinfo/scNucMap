@@ -7,6 +7,8 @@ suppressPackageStartupMessages({
   library(Signac)
 })
 
+options(warn = -1)
+
 ##### command line options #####
 
 # set options
@@ -19,8 +21,8 @@ option_list <- list(
               help = "Threshold for cells with zero values (percentage) [default: 70]"),
   make_option(c("-t", "--thre_tf"), type = "numeric", default = 90, 
               help = "Threshold for TFs with zero values (percentage) [default: 90]"),
-  make_option(c("-l", "--winsor_low"), type = "numeric", default = 0.05, 
-              help = "Lower quantile for Winsorization [default: 0.05]"),
+  make_option(c("-l", "--winsor_low"), type = "numeric", default = 0, 
+              help = "Lower quantile for Winsorization [default: 0]"),
   make_option(c("-u", "--winsor_up"), type = "numeric", default = 0.95, 
               help = "Upper quantile for Winsorization [default: 0.95]"),
   make_option(c("-v", "--CV_thre"), type = "numeric", default = 0.5, 
@@ -31,6 +33,8 @@ option_list <- list(
               help = "lower limit of option 'dims' in function Seurat::FindNeighbors [default: 2]"),
   make_option(c("-b", "--dim_up"), type = "numeric", default = 17, 
               help = "upper limit of option 'dims' in function Seurat::FindNeighbors [default: 17]"),
+  make_option(c("-r", "--resolution"), type = "numeric", default = 0.6, 
+              help = "Value of the Resolution option in the Seurat::FindClusters function [default: 0.6]"),
   make_option(c("-p", "--clustering_method"), type = "numeric", default = 1, 
               help = "Clustering method: 1 for graph-based, 2 for tree-based [default: 1]"),
   make_option(c("-k", "--tree_clusters"), type = "numeric", 
@@ -211,6 +215,7 @@ fig_out_dir <- opts$fig_out_dir
 lsi_dims <- opts$LSI_dims
 n_dim_low <- opts$dim_low
 n_dim_up <- opts$dim_up
+my_resolution <- opts$resolution
 
 
 df <- filter_zero_values(df, n = thre_cell, m = thre_tf)$filtered_df
@@ -273,10 +278,10 @@ if (clustering_method == 1) {
 
   svd_matrix <- df_norm_filtered_clst_TFIDF_SVD@cell.embeddings
   FindNeighbors_res <- Seurat::FindNeighbors(svd_matrix, reduction = 'lsi', dims = n_dim_low:n_dim_up)
-  sample_clusters <- FindClusters(object = FindNeighbors_res$snn, verbose = FALSE, algorithm = 1)
+  sample_clusters <- Seurat::FindClusters(object = FindNeighbors_res$snn, verbose = FALSE, algorithm = 1, resolution = my_resolution)
   
-  row_hclust <- pheatmap(df_norm_filtered,silent = TRUE)$tree_row
-  sample_clusters <- cutree(row_hclust, k = 3)
+  # row_hclust <- pheatmap(df_norm_filtered,silent = TRUE)$tree_row
+  # sample_clusters <- cutree(row_hclust, k = 3)
 
 } else if (clustering_method == 2) {
   # Based on tree

@@ -1,0 +1,133 @@
+#!/bin/bash
+
+set -e
+
+# Default values
+num_threads=1
+center_upstream=400
+center_downstream=400
+window_size=1
+motif_shift_size=200
+coverage_threshold=0.05
+region_hit_threshold=1
+mode="standard"
+center_range=100
+flank_range=200
+
+# Help message
+show_help() {
+    echo "Usage: cal_summitDist_mat.sh -f <meta_file> -c <center_file> -o <out_prefix> [options]"
+    echo ""
+    echo "Required:"
+    echo "  -f    Meta file: first column is single-cell BED paths; second column is labels"
+    echo "  -c    Directory of TFBS center BED files"
+    echo "  -o    Output prefix"
+    echo ""
+    echo "Optional:"
+    echo "  -u    Center upstream (default: 400)"
+    echo "  -d    Center downstream (default: 400)"
+    echo "  -w    Window size (default: 1)"
+    echo "  -m    Motif shift size (default: 200)"
+    echo "  -t    Coverage threshold (default: 0.05)"
+    echo "  -n    Region hit threshold (default: 1)"
+    echo "  -r    Center range (upstream + downstream) in fragment count (default: 100)"
+    echo "  -k    Flank range (upstream + downstream) in fragment count (default: 200)"
+    echo "  -p    Number of threads (default: 1)"
+    echo "  -M    Mode: standard or lite (default: standard)"
+    echo "  -h    Show this help message"
+}
+
+# Parse arguments
+while getopts "hf:c:o:u:d:w:m:t:n:r:k:p:M:-:" opt; do
+    case $opt in
+        h) show_help; exit 0 ;;
+        f) meta_file="$OPTARG" ;;
+        c) center_file="$OPTARG" ;;
+        o) out_prefix="$OPTARG" ;;
+        u) center_upstream="$OPTARG" ;;
+        d) center_downstream="$OPTARG" ;;
+        w) window_size="$OPTARG" ;;
+        m) motif_shift_size="$OPTARG" ;;
+        t) coverage_threshold="$OPTARG" ;;
+        n) region_hit_threshold="$OPTARG" ;;
+        r) center_range="$OPTARG" ;;
+        k) flank_range="$OPTARG" ;;
+        p) num_threads="$OPTARG" ;;
+        M) mode="$OPTARG" ;;
+        -)
+            case "${OPTARG}" in
+                mode=*) mode="${OPTARG#*=}" ;;
+                help) show_help; exit 0 ;;
+                *) echo "Invalid option: --$OPTARG" >&2; exit 1 ;;
+            esac ;;
+        \?) echo "Invalid option -$OPTARG" >&2; exit 1 ;;
+    esac
+done
+
+# Check required arguments
+if [ -z "$meta_file" ] || [ -z "$center_file" ] || [ -z "$out_prefix" ]; then
+    echo "Error: Missing required arguments." >&2
+    show_help
+    exit 1
+fi
+
+if [ ! -f "$meta_file" ] || [ ! -d "$center_file" ]; then
+    echo "Error: meta_file must be a file and center_file must be a directory." >&2
+    show_help
+    exit 1
+fi
+
+# Setup
+output_dir=$(dirname "$out_prefix")
+temp_dir="$output_dir/temp_nuclVale_parallel"
+
+if [ -d "$temp_dir" ]; then
+    echo "[INFO] Cleaning existing temp directory: $temp_dir"
+    rm -rf "$temp_dir"
+fi
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
+echo "[INFO] Mode: $mode"
+echo "[INFO] Calculating summit distance matrix with $num_threads thread(s)..."
+
+# Execute
+if [ "$mode" = "standard" ]; then
+    "$SCRIPT_DIR/../bin/cal_SD_and_frag_count_standard" \
+        -f "$meta_file" \
+        -c "$center_file" \
+        -o "$out_prefix" \
+        -u "$center_upstream" \
+        -d "$center_downstream" \
+        -w "$window_size" \
+        -m "$motif_shift_size" \
+        -t "$coverage_threshold" \
+        -n "$region_hit_threshold" \
+        -r "$center_range" \
+        -k "$flank_range" \
+        -p "$num_threads"
+
+elif [ "$mode" = "lite" ]; then
+    "$SCRIPT_DIR/../bin/cal_SD_and_frag_count_lite" \
+        -f "$meta_file" \
+        -c "$center_file" \
+        -o "$out_prefix" \
+        -u "$center_upstream" \
+        -d "$center_downstream" \
+        -w "$window_size" \
+        -m "$motif_shift_size" \
+        -t "$coverage_threshold" \
+        -n "$region_hit_threshold" \
+        -r "$center_range" \
+        -k "$flank_range" \
+        -p "$num_threads"
+else
+    echo "Error: Invalid mode '$mode'. Use 'standard' or 'lite'." >&2
+    exit 1
+fi
+
+if [ -f "tfc_files.txt" ]; then
+    rm "tfc_files.txt"
+fi
+
+echo "[DONE] Summit distance matrix calculation and nucleosomal fragment counting completed."

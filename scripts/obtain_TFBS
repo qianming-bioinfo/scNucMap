@@ -86,7 +86,7 @@ start=$SECONDS
 # for both positive and negative strand
 for f in $chrFaDir/*.fa
 do
-  echo "Processing $f file..."
+  echo "[INFO] Processing $f file..."
   
   pre=$(basename $f)
   pre=${pre%.*}
@@ -109,27 +109,27 @@ cat $outDir/*_MOODS.csv > $outDir/MOODS_genomeScan.csv
 
 end=$SECONDS
 
-echo "Motif matching completed in $((end-start)) seconds."
+echo "[INFO] Motif matching completed in $((end-start)) seconds."
 
 
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 
 # TFBS filtering
-echo "Dealing with MOODS output..."
+echo "[INFO] Dealing with MOODS output..."
 python "$SCRIPT_DIR/../python/sepMotifCenterRes.py" \
     -i $outDir/MOODS_genomeScan.csv \
     -o $outDir/motifCenter_txt
 
-echo "Adpating results format..."
+echo "[INFO] Adpating results format..."
 python "$SCRIPT_DIR/../python/center2bed_flank.py" \
     -i $outDir/motifCenter_txt \
     -o $outDir/motifCenter_bed \
     -d 0
 
-echo "TFBS filtering..."
+echo "[INFO] TFBS filtering..."
 python "$SCRIPT_DIR/../python/motifCenterOvlpPeaks.py" \
     -c $outDir/motifCenter_bed \
     -r $open_region \
     -o $outDir/motif_openRegion_overlap_center
 
-echo "done!"
+echo "[DONE]"

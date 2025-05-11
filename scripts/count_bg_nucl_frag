@@ -1,0 +1,92 @@
+#!/bin/bash
+
+set -e
+
+# Default values
+metaFile=""
+TFBSCenter=""
+outPrefix=""
+centerUpstream=100
+centerDownstream=100
+flankUpstream=200
+flankDownstream=200
+windowSize=1
+numThreads=1
+
+# Help message
+usage() {
+    echo "Usage: countNuclFrag.sh -f <metaFile> -c <TFBSCenter> -o <outPrefix> [options]"
+    echo ""
+    echo "Required:"
+    echo "  -f    Meta file: first column is BED paths; second column is labels"
+    echo "  -c    background center directory (first column: chromosome, second column: center position, third column: strand, optional)"
+    echo "  -o    Output prefix"
+    echo ""
+    echo "Optional:"
+    echo "  -u    Center upstream (default: 100)"
+    echo "  -d    Center downstream (default: 100)"
+    echo "  -l    Flank upstream (default: 200)"
+    echo "  -r    Flank downstream (default: 200)"
+    echo "  -w    Window size (default: 1)"
+    echo "  -p    Number of threads (default: 1)"
+    echo "  -h    Show this help message"
+}
+
+# Parse arguments
+while getopts ":f:c:o:u:d:l:r:w:p:h" opt; do
+    case ${opt} in
+        f ) metaFile=$OPTARG ;;
+        c ) TFBSCenter=$OPTARG ;;
+        o ) outPrefix=$OPTARG ;;
+        u ) centerUpstream=$OPTARG ;;
+        d ) centerDownstream=$OPTARG ;;
+        l ) flankUpstream=$OPTARG ;;
+        r ) flankDownstream=$OPTARG ;;
+        w ) windowSize=$OPTARG ;;
+        p ) numThreads=$OPTARG ;;
+        h ) usage; exit 0 ;;
+        \? ) echo "Invalid option: -$OPTARG" >&2; usage; exit 1 ;;
+        : ) echo "Missing argument for -$OPTARG" >&2; usage; exit 1 ;;
+    esac
+done
+
+# Check required arguments
+if [ -z "$metaFile" ] || [ -z "$TFBSCenter" ] || [ -z "$outPrefix" ]; then
+    echo "Error: Missing required arguments." >&2
+    usage
+    exit 1
+fi
+
+if [ ! -f "$metaFile" ]; then
+    echo "Error: meta_file must be a valid file." >&2
+    usage
+    exit 1
+fi
+
+if [ ! -d "$TFBSCenter" ]; then
+    echo "Error: TFBSCenter must be a valid directory." >&2
+    usage
+    exit 1
+fi
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
+echo "[INFO] Running with $numThreads thread(s)..."
+
+"$SCRIPT_DIR/../bin/countNuclFrag_standard" \
+    -f "$metaFile" \
+    -c "$TFBSCenter" \
+    -o "$outPrefix" \
+    -u "$centerUpstream" \
+    -d "$centerDownstream" \
+    -l "$flankUpstream" \
+    -r "$flankDownstream" \
+    -w "$windowSize" \
+    -p "$numThreads"
+
+
+if [ -f "tfc_files.txt" ]; then
+    rm "tfc_files.txt"
+fi
+
+echo "[DONE] Nucleosomal fragment counting completed."
