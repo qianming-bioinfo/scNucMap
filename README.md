@@ -147,6 +147,7 @@ cell_clustering -n data/motifID_and_name.txt \
 - `-d`: Option 'dims' in function Signac::RunSVD [default: 20].
 - `-a`: Lower limit of option 'dims' in function Seurat::FindNeighbors [default: 2].
 - `-b`: Upper limit of option 'dims' in function Seurat::FindNeighbors [default: 17].
+- `-r`: Value of the Resolution option in the Seurat::FindClusters function [default: 0.6]
 - `-p`: Clustering method: 1 for graph-based, 2 for tree-based [default: 1].
 - `-k`: Number of clusters for tree-based clustering (must be provided if `-p` is 2).
 - `-h`: Show help message.
