@@ -5,6 +5,9 @@
 ![Overview of scNucMap](figures/overview.png)
 
 
+## Citation  [![DOI](https://img.shields.io/badge/DOI-10.1093%2Fbioinformatics%2Fbtaf324-blue)](https://doi.org/10.1093/bioinformatics/btaf324)
+
+Xiang Q, Lai B. scNucMap: mapping the nucleosome landscapes at single-cell resolution. Bioinformatics. 2025 Jun 2;41(6):btaf324.
 ## Requirements
 
 - R 4.3.0 (or higher)
