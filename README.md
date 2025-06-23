@@ -1,4 +1,4 @@
-# scNucMap: Mapping the landscape between nucleosomes at single-cell resolution
+# scNucMap: mapping the nucleosome landscapes at single-cell resolution
 
 **scNucMap** is a tool specifically designed to leverage the unique characteristics of scMNase-seq data to map the valley-like landscape of candidate nucleosome-free regions (NFRs). scNucMap demonstrates superior performance and robustness in clustering cells across diverse sample compositions and varying data complexities. It effectively identifies key transcription factors (TFs) associated with nucleosome depletion at cis-regulatory elements (CREs) at both the single-cell and cell-cluster levels, thereby facilitating cell type annotation and regulatory network inference.
 
